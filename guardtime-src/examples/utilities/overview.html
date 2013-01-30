@@ -1,0 +1,76 @@
+<!-- $Id: overview.html 260 2012-02-25 13:04:02Z ahto.truu $ -->
+<html>
+<body>
+
+<p>GuardTime SDK includes simple command line utilities for timestamping arbitrary files and verifying the timestamps.</p>
+
+<p>These utilities are written for GuardTime Java API version 0.4 and will not work with any previous version of API. In this document we assume that GuardTime Java API is available in <code>GTJavaSDK-0.4.jar</code>.</p>
+
+<p>To run these utilities, you will also need <a href="http://www.bouncycastle.org/java.html">Bouncy Castly crypto API for Java</a>. You can get a copy <a href="http://www.bouncycastle.org/latest_releases.html">here</a> (you need only provider JAR named <code>bcprov-jdkXX-XXX.jar</code>). We recommend version 1.45 or higher. In this document we assume that Bouncy Castle crypto API is available in <code>bcprov-jdk14-145.jar</code>.</p>
+
+
+
+<h2>Creating a timestamp</h2>
+
+<p>The timestamping utility is located in the file <code>examples/utilities/ExampleCreate.java</code> within the SDK source code archive.</p>
+
+<p>To compile the example using the Sun JDK compiler, use this command:</p>
+<pre>
+	javac -cp GTJavaSDK-0.4.jar ExampleCreate.java
+</pre>
+
+<p>To run the compiled example, use this command:</p>
+<pre>
+	java -cp .:GTJavaSDK-0.4.jar:bcprov-jdk14-145.jar ExampleCreate data.txt data.txt.gtts http://stamper.guardtime.net/gt-signingservice
+</pre>
+<p>where the data is to be read from the file <code>data.txt</code>, the timestamp is to be written to the file <code>data.txt.gtts</code>, and the timestamping service is located at the URL <code>http://stamper.guardtime.net/gt-signingservice</code>.</p>
+
+<p>The core of the example is this code:</p>
+<pre>
+	// Compute data hash
+	GTDataHash dataHash = new GTDataHash(GTHashAlgorithm.SHA256);
+	FileInputStream in = new FileInputStream(args[0]); 
+	dataHash.update(in).close();
+
+	// Get timestamp
+	GTTimestamp timestamp = HttpTimestamper.create(dataHash, args[2]);
+</pre>
+
+<p>Full source code is available <a href="ExampleCreate.java">here</a>.</p>
+
+
+
+<h2>Verifying a timestamp</h2>
+
+<p>The timestamp verifying utility is located in the file <code>examples/utilities/ExampleVerify.java</code> within the SDK source code archive.</p>
+
+<p>To compile the example using the Sun JDK compiler, use this command:</p>
+<pre>
+	javac -cp GTJavaSDK-0.4.jar ExampleVerify.java
+</pre>
+
+<p>To run the compiled example, use this command:</p>
+<pre>
+	java -cp .:GTJavaSDK-0.4.jar:bcprov-jdk14-145.jar ExampleVerify data.txt data.txt.gtts http://verify.guardtime.com/gt-controlpublications.bin http://verifier.guardtime.net/gt-extendingservice
+</pre>
+<p>where the data is to be read from the file <code>data.txt</code>, the timestamp is to be read from the file <code>data.txt.gtts</code>, the publications list is to be retrieved from the URL <code>http://verify.guardtime.com/gt-controlpublications.bin</code>, and the online verifying service is located at the URL <code>http://verifier.guardtime.net/gt-extendingservice</code>. The last parameter is optional, you can specify <code>-</code> instead of the URL for offline verification.</p>
+
+<p>The core of the example is this code:</p>
+<pre>
+	// Compute data hash
+	GTDataHash dataHash = new GTDataHash(timestamp.getHashAlgorithm());
+	FileInputStream in = new FileInputStream(args[0]);
+	dataHash.update(in).close();
+
+	// Download publications file
+	GTPublicationsFile publicationsFile = HttpTimestamper.getPublicationsFile(args[2]);
+
+	// Verify timestamp
+	HttpVerificationResult res = HttpTimestamper.verify(timestamp, dataHash, args[3], null, publicationsFile);
+	System.out.println(res.isValid() ? "Timestamp valid" : "Timestamp NOT valid");
+</pre>
+
+<p>Full source code is available <a href="ExampleVerify.java">here</a>.</p>
+
+</body>
+</html>
